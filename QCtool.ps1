@@ -1,4 +1,6 @@
-<# 
+<#THIS POWERSHELL DOCUMENT IS TO AUTOMATE THE QUALITY CONTROL PROCESS WHEN SETTING UP A NEW MACHINE
+
+
 .TITLE
     QC Automation Script
 
@@ -9,7 +11,7 @@
     Baselines machines. Completing most of the steps on the QC checklist
 
 .AUTHOR
-    Tyler Neely 
+    Tyler and Kyle Neely
 
 .LASTMODIFIED
     7/5/2022

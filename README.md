@@ -1,3 +1,5 @@
+VICTORY IS YOURS!! SHARE IT WITH ME
+
 # Powershell
 powershell-scripts
 

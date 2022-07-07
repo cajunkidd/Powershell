@@ -1,0 +1,1 @@
+﻿Get-ChildItem -Path C:\Users, <#ADD OTHER FOLDERS HERE#> -Include *.doc,*.py -File -Recurse -ErrorAction SilentlyContinue 

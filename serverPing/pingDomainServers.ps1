@@ -1,0 +1,1 @@
+﻿start-process -filepath "C:\Users\vincent\Documents\ping.bat" -redirectstandardoutput 'C:\Users\vincent\documents\output.txt' -wait -windowstyle hidden

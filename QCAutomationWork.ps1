@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
 .TITLE
     QC Automation Script
 
@@ -14,84 +14,113 @@
 .LASTMODIFIED
     7/5/2022
 
-.NOTES
-    -Rough Draft 
-    -Software installs/uninstalls are using removeable D: drive for installers
-    -Will clean up and add pauses for better flow control
-    -Need checks for Mcafee | Office365 | NinjaRMM
+.NOTES 
+    Will clean up and add pauses for better flow control
+    Verify below paths to installers is correct!
 #>
-
-#Verify below paths to installers is correct!
+Import-Module -Name PSWindowsUpdate -Force
 $NinjaLocation         = "D:\QCAutomation\Ninja.exe"
 $AdobeLocation         = "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
 $ChromeLocation        = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 $FirefoxLocation       = "C:\Program Files\Mozilla Firefox\firefox.exe"
-$MalwareBytesLocation  = "C:\Program Files\Malwarebytes Endpoint Agent\UserAgent\Endpoint Agent Tray.exe"
-$O365UninstallLocation = "D:\ODT\UninstallString.bat"
-$O365InstallLocation   = "D:\ODT\O365std_x64.bat"
-$NewMachineName        = Read-Host "Enter Computer Name:"
-$UnnecessaryApps       = @('*skypeapp*' , '*xbox*' , '*yourphone*' , '*solitairecollection*' , '*zune*', '*mcafee*' )
+$NewMachineName        = Read-Host "Enter Computer Name"
+$UnnecessaryApps       = @('*skypeapp*' , '*xbox*' , '*yourphone*' , '*solitairecollection*' , '*zune*', '*mcafee*' , '*disney*' )
 $MissingApps           = @()
+$OfficeBuild           = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name “VersionToReport”
 $SoftwareInfo = [PSCustomObject]@{
     ComputerModel         = Get-ComputerInfo -Property CsModel
     ComputerSerialNumber  = Get-ComputerInfo -Property BiosSeralNumber
-    NinjaInstalled        = $False
+    OfficeInstalled       = "False"
+    OfficeBuildNum        = $null
+    NinjaInstalled        = "False"
+    MalwarebytesInstalled = "False"
+    CoNNectInstalled      = "False"
+    TeamviewerInstalled   = "False"
+    ChromeInstalled       = "False"
+    AdobeInstalled        = "False"
+    FirefoxInstalled      = "False"
     NinajaVersion         = $null
-    MalwarebytesInstalled = $False
-    MalwarebytesVersion   = (Get-ItemProperty -Path "C:\Program Files\Malwarebytes Endpoint Agent\UserAgent\Endpoint Agent Tray.exe").VersionInfo
-    CoNNectInstalled      = $False
-    AdobeInstalled        = $False
-    AdobeVersion          = Get-ItemProperty -Path $AdobeLocation.ProductVersion
-    ChromeInstalled       = $False
-    ChromeVersion         = Get-ItemProperty $ChromeLocation.ProductVersion
-    FirefoxInstalled      = $False
-    FirefoxVersion        = Get-ItemProperty $FirefoxLocation.ProductVersion
-    UninstalledApps       = $UninstalledApps
+    AdobeVersion          = (Get-ItemProperty -Path "$AdobeLocation").VersionInfo.ProductVersion
+    MalwarebytesVersion   = (Get-ItemProperty -Path "C:\Program Files\Malwarebytes Endpoint Agent\UserAgent\Endpoint Agent Tray.exe").VersionInfo.ProductInfo
+    ChromeVersion         = (Get-ItemProperty $ChromeLocation).VersionInfo.ProductVersion
+    FirefoxVersion        = (Get-ItemProperty "$FirefoxLocation").VersionInfo.ProductVersion 
+    UninstalledApps       = $MissingApps
     MissedBloatware       = $MissedBloatware
 }
-Import-Module -Name PSWindowsUpdate -Force -InformationAction SilentlyContinue
+#SoftwareInstalls
+#Import-Module -Name PSWindowsUpdate -Force
 Rename-Computer -NewName "$NewMachineName"
-#SoftwareUninstallandInstall
 foreach($App in $UnnecessaryApps){
+   
     Get-AppxPackage $App | Remove-AppxPackage -ErrorAction SilentlyContinue -InformationAction SilentlyContinue
-    Get-AppxPackage $App += $MissedBloatware
+
     }
-Write-Host -ForegroundColor Yellow "Installing Office & Updating Windows wait..."
+Write-Host -ForegroundColor Yellow "INSTALLING OFFICE & UPDATING WINDOWS...WAIT"
 Start-Process -Wait -FilePath D:\QCAutomation\UninstallString.bat | Write-Error -Message "ERROR - CHECK TO SEE IF ALREADY UNINSTALLED"
+Start-Sleep -Seconds 69
 Install-WindowsUpdate -ForceDownload -ForceInstall
 Start-Process -Wait -FilePath D:\ODT\O365std_x64.bat 
-#Install ninja
-if(Test-Path HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\NinjaRMMAgent){
-    $SoftwareInfo.NinjaInstalled = $True
-    (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*NinjaRMMAgent*")
-}
+Start-Sleep -Seconds 69
+Start-Process -Wait -FilePath "D:\QCAutomation\businesshealthpartnersleesville-5.3.4287-windows-installer.msi" -ArgumentList "/qn" -PassThru
+
+if($OfficeBuild -eq "16.0.15330.20230"){
+    $SoftwareInfo.OfficeBuildNum = "Correct Version Installed: O365BusinessRetail"
+    }
+if(Test-Path -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration){
+    $SoftwareInfo.OfficeInstalled = "True"
+    }
+else{
+    $SoftwareInfo.UninstalledApps += "Office"
+    }
+if(Test-Path HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*NinjaRMMAgent*){
+    $SoftwareInfo.NinjaInstalled = "True"
+    $SoftwareInfo.NinajaVersion = Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*NinjaRMMAgent*" | Select-Object -Property DisplayVersion
+    }
 else{
     Write-Warning "Ninja Agent Not Installed"
-    #instllninja
-}
-if(Test-Path -Path $MalwareBytesLocation){
-    $SoftwareInfo.Malwarebytesinstalled = $True
-}
+    $MissingApps += "Ninja"
+    }
+if(Test-Path -Path "C:\Program Files\Malwarebytes Endpoint Agent\UserAgent\Endpoint Agent Tray.exe"){
+    $SoftwareInfo.Malwarebytesinstalled = "True"
+    }
+else{
+    $MissingApps += "Malwarebytes"
+    }
+if(Test-Path "C:\Program Files (x86)\DeskDirector Client Portal\DeskDirectorPortal.exe"){
+    $SoftwareInfo.CoNNectInstalled = "True"
+    }
+else{
+    $MissingApps += "CoNNect"
+    }
+if(Test-Path "C:\Program Files (x86)\TeamViewer\TeamViewer.exe"){
+    $SoftwareInfo.TeamviewerInstalled = "True"
+    }
+else{
+    $MissingApps += "Teamviewer"
+    }
 if(test-path $AdobeLocation){
-    $SoftwareInfo.AdobeInstalled = $true
+    $SoftwareInfo.AdobeInstalled = "True"
     }
 else{
     Start-Process -Wait -FilePath D:\QCAutomation\AcroRdrDC2200120142_en_US.exe -ArgumentList '/sAll'      
     }
 if(Test-Path $FirefoxLocation){
-    $SoftwareInfo.FirefoxInstalled = $True
+    $SoftwareInfo.FirefoxInstalled = "True"
     }
 else{
     Start-Process -Wait -FilePath 'D:\QCAutomation\Firefox Setup 102.0.exe' -ArgumentList '/s' -PassThru
     }
 if(Test-Path $ChromeLocation){
-    $SoftwareInfo.ChromeInstalled = $True
-    $SoftwareInfo.ChromeVersion = Get-ItemProperty -Path $ChromeLocation.Product
+    $SoftwareInfo.ChromeInstalled = "True"
     }
-#End
-cleanmgr.exe /verylowdisk
+else{
+    $MissingApps += "Chrome"
+    }
+
+cleanmgr.exe /verylowdisk /autoclean
 Remove-Item C:\users\nnadmin\Downloads\* -Force
 Clear-RecycleBin -Force
 Write-Warning "FININSHED! RESTART COMPUTER"
+$SoftwareInfo | Format-List
+Start-Sleep -Seconds 30
 Restart-Computer -Confirm 
-
